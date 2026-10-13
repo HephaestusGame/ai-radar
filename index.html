@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Radar · 模型雷达</title>
+<style>
+:root {
+  --bg: #0a0a0b;
+  --bg2: #121214;
+  --card: #161618;
+  --card-hover: #1c1c1f;
+  --border: #2a2a2e;
+  --border-soft: #222226;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --faint: #71717a;
+  --accent: #f59e0b;
+  --accent-dim: rgba(245,158,11,.15);
+  --accent-hover: #fbbf24;
+  --danger: #ef4444;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.35);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+.app { max-width: 920px; margin: 0 auto; padding: 20px 16px 72px; }
+
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+}
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-icon {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: linear-gradient(145deg, #f59e0b, #ea580c);
+  display: grid; place-items: center; flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(245,158,11,.2), 0 4px 14px rgba(234,88,12,.35);
+}
+.brand-icon svg { width: 22px; height: 22px; }
+.brand h1 { font-size: 20px; font-weight: 750; letter-spacing: -.02em; line-height: 1.2; }
+.brand .sub { color: var(--faint); font-size: 12px; margin-top: 2px; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; border-radius: 999px; font-weight: 650; font-size: 13px;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.btn:active { transform: scale(.98); }
+.btn-outline {
+  border: 1px solid var(--border); color: var(--text); background: transparent;
+}
+.btn-outline:hover { border-color: #3f3f46; background: var(--bg2); }
+.btn-solid {
+  background: var(--accent); color: #1a0f00; border: 1px solid transparent;
+}
+.btn-solid:hover { background: var(--accent-hover); }
+.btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* Filter panel */
+.filters {
+  background: var(--bg2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.search-wrap { position: relative; margin-bottom: 14px; }
+.search-wrap svg {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; color: var(--faint); pointer-events: none;
+}
+#q {
+  width: 100%; padding: 11px 14px 11px 40px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--card); color: var(--text); outline: none;
+}
+#q:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+#q::placeholder { color: var(--faint); }
+
+.filter-row {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-bottom: 12px;
+}
+.filter-row:last-child { margin-bottom: 0; }
+.filter-label {
+  color: var(--faint); font-size: 12px; font-weight: 650;
+  margin-right: 4px; white-space: nowrap;
+}
+.pill {
+  padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  border: 1px solid var(--border); color: var(--muted); background: transparent;
+  transition: all .15s;
+}
+.pill:hover { border-color: #3f3f46; color: var(--text); }
+.pill.on {
+  background: var(--accent); color: #1a0f00; border-color: var(--accent);
+}
+.date-inputs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.date-inputs input[type="date"] {
+  padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); color-scheme: dark;
+}
+.date-sep { color: var(--faint); font-size: 12px; }
+
+/* List header */
+.list-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.list-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 16px; font-weight: 750;
+}
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: var(--accent-dim); color: var(--accent);
+}
+.list-meta {
+  display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px;
+}
+.mark-all {
+  color: var(--accent); font-weight: 650; font-size: 13px;
+  padding: 4px 8px; border-radius: 6px;
+}
+.mark-all:hover { background: var(--accent-dim); }
+.mark-all:disabled { opacity: .4; cursor: default; }
+
+/* Cards */
+.cards { display: flex; flex-direction: column; gap: 10px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 16px 16px 14px;
+  transition: background .15s, border-color .15s;
+}
+.card:hover { background: var(--card-hover); border-color: var(--border); }
+.card.unread { border-color: rgba(245,158,11,.35); }
+.card-top {
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.logo {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-weight: 800; font-size: 13px;
+  color: #fff; letter-spacing: -.02em;
+}
+.card-body { flex: 1; min-width: 0; }
+.card-title-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+}
+.card-title {
+  font-size: 15px; font-weight: 750; letter-spacing: -.01em; line-height: 1.35;
+}
+.new-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 6px;
+  background: var(--accent); color: #1a0f00;
+  font-size: 10px; font-weight: 800; letter-spacing: .04em;
+}
+.card-meta {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  color: var(--faint); font-size: 12px; margin-bottom: 8px;
+}
+.vendor-tag { font-weight: 700; }
+.card-summary {
+  color: var(--muted); font-size: 13px; line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card.expanded .card-summary {
+  display: block; -webkit-line-clamp: unset;
+}
+.card-footer {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-soft);
+}
+.card-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 650; color: var(--muted);
+  padding: 0; background: none; border: 0; cursor: pointer;
+}
+.card-link:hover { color: var(--accent); }
+.card-link svg { width: 13px; height: 13px; }
+.card-link.disabled { opacity: .35; pointer-events: none; cursor: default; }
+.card-detail {
+  display: none; margin-top: 10px; padding: 12px;
+  background: var(--bg); border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  color: var(--muted); font-size: 13px; line-height: 1.6;
+}
+.card.expanded .card-detail { display: block; }
+.card.expanded .card-summary { margin-bottom: 0; }
+
+.empty {
+  text-align: center; padding: 48px 20px; color: var(--faint);
+  background: var(--card); border: 1px dashed var(--border); border-radius: var(--radius);
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #1f1f23; border: 1px solid var(--border); color: var(--text);
+  padding: 12px 18px; border-radius: 12px; font-size: 13px; font-weight: 600;
+  box-shadow: 0 12px 40px rgba(0,0,0,.5); z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  max-width: min(420px, calc(100vw - 32px)); text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+
+footer {
+  margin-top: 28px; color: var(--faint); font-size: 12px; line-height: 1.6; text-align: center;
+}
+
+@media (max-width: 560px) {
+  .brand h1 { font-size: 18px; }
+  .header-actions .btn span.hide-sm { display: none; }
+  .card { padding: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1a0f00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="5"/>
+          <circle cx="12" cy="12" r="1.5" fill="#1a0f00" stroke="none"/>
+          <path d="M12 3v2M12 19v2M3 12h2M19 12h2"/>
+        </svg>
+      </div>
+      <div>
+        <h1>AI Radar</h1>
+        <div class="sub">模型雷达</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn btn-outline" id="btnSubscribe" title="订阅通知">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span>订阅通知</span>
+      </button>
+      <button type="button" class="btn btn-solid" id="btnRefresh" title="检查官网">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <span>检查官网</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="filters" aria-label="筛选">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="搜索模型名称、版本..." autocomplete="off" />
+    </div>
+    <div class="filter-row" id="vendorPills">
+      <span class="filter-label">厂商</span>
+      <!-- pills injected -->
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">日期</span>
+      <div class="date-inputs">
+        <input type="date" id="dateFrom" aria-label="起始日期" />
+        <span class="date-sep">至</span>
+        <input type="date" id="dateTo" aria-label="结束日期" />
+      </div>
+    </div>
+    <div class="filter-row" id="rangePills">
+      <span class="filter-label">快捷</span>
+      <button type="button" class="pill" data-range="7">近7天</button>
+      <button type="button" class="pill" data-range="30">近30天</button>
+      <button type="button" class="pill on" data-range="all">全部时间</button>
+    </div>
+  </section>
+
+  <div class="list-head">
+    <div class="list-title">
+      模型发布
+      <span class="badge" id="countBadge">0 条</span>
+    </div>
+    <div class="list-meta">
+      <span id="unreadLabel">0 条未读</span>
+      <button type="button" class="mark-all" id="btnMarkAll">一键已读</button>
+    </div>
+  </div>
+
+  <div class="cards" id="list"></div>
+
+  <footer>
+    本地静态页 · 数据由幕僚长确认后写入 · 不含通义 / 豆包 / Mistral<br />
+    请用 Chrome / Safari / Edge 直接打开本文件（file://）
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var VENDORS = {
+    OpenAI:   { label: "OpenAI",   short: "OAI", color: "#10a37f", pill: "OpenAI" },
+    Anthropic:{ label: "Anthropic",short: "Ant", color: "#d97706", pill: "Anthropic" },
+    Google:   { label: "Google",   short: "G",   color: "#4285f4", pill: "Google" },
+    xAI:      { label: "xAI",      short: "xAI", color: "#a1a1aa", pill: "Grok" },
+    Meta:     { label: "Meta",     short: "M",   color: "#3b82f6", pill: "Meta" },
+    DeepSeek: { label: "DeepSeek", short: "DS",  color: "#6366f1", pill: "DeepSeek" },
+    Kimi:     { label: "Kimi",     short: "Ki",  color: "#a855f7", pill: "Kimi" },
+    Zhipu:    { label: "智谱",     short: "GLM", color: "#0ea5e9", pill: "GLM" }
+  };
+
+  /* Pill order matching screenshot + Meta */
+  var PILL_ORDER = ["OpenAI", "Anthropic", "Google", "DeepSeek", "Zhipu", "Kimi", "xAI", "Meta"];
+
+  var RELEASES = [
+    { id: "openai-gpt-5-5", vendor: "OpenAI", name: "GPT-5.5", date: "2026-04-23",
+      title: "Introducing GPT-5.5",
+      note: "ChatGPT / Codex 旗舰跃迁，推理与编码能力全面提升。",
+      url: "" },
+    { id: "openai-gpt-5-6", vendor: "OpenAI", name: "GPT-5.6 Sol / Terra / Luna", date: "2026-07-09",
+      title: "Introducing GPT-5.6 Sol / Terra / Luna",
+      note: "三档成本-智能曲线，覆盖高性价比到旗舰需求。",
+      url: "" },
+    { id: "openai-gpt-6-astra", vendor: "OpenAI", name: "GPT-6 Astra", date: "2026-09-03",
+      title: "Introducing GPT-6 Astra",
+      note: "新一代旗舰模型，在复杂推理与 Agent 任务上跃迁。",
+      url: "" },
+    { id: "openai-gpt-6-sol-luna", vendor: "OpenAI", name: "GPT-6 Sol / Luna", date: "2026-09-22",
+      title: "Introducing GPT-6 Sol / Luna",
+      note: "Astra 同代高性价比线，面向日常与规模化部署。",
+      url: "" },
+    { id: "openai-gpt-6-1-sol", vendor: "OpenAI", name: "GPT-6.1 Sol", date: "2026-09-29",
+      title: "Introducing GPT-6.1 Sol",
+      note: "Sol 小版本升级，延迟与稳定性优化。",
+      url: "" },
+    { id: "anthropic-mythos-preview", vendor: "Anthropic", name: "Mythos Preview", date: "2026-04-07",
+      title: "Mythos Preview（Glasswing）",
+      note: "Glasswing 限量 Mythos 级预览，面向高难度推理场景。",
+      url: "" },
+    { id: "anthropic-opus-4-7", vendor: "Anthropic", name: "Opus 4.7", date: "2026-04-16",
+      title: "Claude Opus 4.7",
+      note: "Opus 4 线末段迭代，编码与长程任务增强。",
+      url: "" },
+    { id: "anthropic-opus-4-8", vendor: "Anthropic", name: "Opus 4.8", date: "2026-05-28",
+      title: "Claude Opus 4.8",
+      note: "迁往 Fable 前最后一版 Opus 4，稳定性与工具调用提升。",
+      url: "" },
+    { id: "anthropic-fable-5", vendor: "Anthropic", name: "Fable 5 / Mythos 5", date: "2026-06-09",
+      title: "Introducing Fable 5 / Mythos 5",
+      note: "Mythos 级首次广发（Fable），新一代 Claude 旗舰体系。",
+      url: "" },
+    { id: "anthropic-sonnet-5", vendor: "Anthropic", name: "Sonnet 5", date: "2026-06-30",
+      title: "Claude Sonnet 5",
+      note: "Claude 5 中层，平衡速度与智能，适合日常 Agent。",
+      url: "" },
+    { id: "anthropic-opus-5", vendor: "Anthropic", name: "Opus 5", date: "2026-07-24",
+      title: "Claude Opus 5",
+      note: "接近 Fable 能力，半价档旗舰，适合高负载生产。",
+      url: "" },
+    { id: "anthropic-fable-5-1", vendor: "Anthropic", name: "Fable 5.1", date: "2026-09-01",
+      title: "Claude Fable 5.1",
+      note: "Fable 小版本，修复与长上下文表现改进。",
+      url: "" },
+    { id: "anthropic-opus-5-5", vendor: "Anthropic", name: "Opus 5.5", date: "2026-09-22",
+      title: "Claude Opus 5.5",
+      note: "Claude 5.5 旗舰，编码、推理与工具使用全面增强。",
+      url: "" },
+    { id: "anthropic-sonnet-5-5", vendor: "Anthropic", name: "Sonnet 5.5", date: "2026-09-28",
+      title: "Claude Sonnet 5.5",
+      note: "更快更便宜的日常档，适合高频对话与轻量 Agent。",
+      url: "" },
+    { id: "google-gemini-3-5-flash", vendor: "Google", name: "Gemini 3.5 Flash", date: "2026-05-19",
+      title: "Gemini 3.5 Flash",
+      note: "Flash 线更新，低延迟多模态，适合规模化应用。",
+      url: "" },
+    { id: "google-gemini-3-6-flash", vendor: "Google", name: "Gemini 3.6 Flash", date: "2026-07-21",
+      title: "Gemini 3.6 Flash",
+      note: "Flash 迭代，速度与质量平衡进一步优化。",
+      url: "" },
+    { id: "google-gemini-3-7-flash", vendor: "Google", name: "Gemini 3.7 Flash", date: "2026-08-13",
+      title: "Gemini 3.7 Flash",
+      note: "Flash 迭代，强化工具调用与长上下文。",
+      url: "" },
+    { id: "google-gemini-3-8-flash", vendor: "Google", name: "Gemini 3.8 Flash", date: "2026-09-02",
+      title: "Gemini 3.8 Flash",
+      note: "Flash 迭代，面向 Gemini App 与 API 的日常主力。",
+      url: "" },
+    { id: "anthropic-claude-haiku-5-5", vendor: "Anthropic", name: "Claude Haiku 5.5", date: "2026-10-07",
+      title: "Introducing Claude Haiku 5.5",
+      note: "5.5 系列最快最便宜的小模型，比 Haiku 4.5 平均便宜约 75%，1M 上下文，API ID claude-haiku-5-5。",
+      url: "https://www.anthropic.com/claude-haiku-5-5" },
+    { id: "google-gemini-4-argon", vendor: "Google", name: "Gemini 4 Argon*", date: "2026-09-30",
+      title: "Gemini 4 Argon*",
+      note: "前沿模型，限可信防御圈内可用（* 受限发布）。",
+      url: "" },
+    { id: "google-nano-banana-2-1", vendor: "Google", name: "Nano Banana 2.1", date: "2026-10-06",
+      title: "Introducing Nano Banana 2.1",
+      note: "图像生成与编辑模型，已在 Gemini App / AI Mode / AI Studio 正式可用（GA）。",
+      url: "https://deepmind.google/models/model-cards/nano-banana-2-1/" },
+    { id: "xai-grok-4-3", vendor: "xAI", name: "Grok 4.3", date: "2026-04-30",
+      title: "Grok 4.3",
+      note: "Grok 4.x 推进，实时知识与对话体验提升。",
+      url: "" },
+    { id: "xai-grok-4-5", vendor: "xAI", name: "Grok 4.5", date: "2026-07-08",
+      title: "Grok 4.5",
+      note: "4.x 推进，推理与多模态能力增强。",
+      url: "" },
+    { id: "xai-grok-4-6", vendor: "xAI", name: "Grok 4.6", date: "2026-08-12",
+      title: "Grok 4.6",
+      note: "长程 Agent 与视觉能力显著加强。",
+      url: "" },
+    { id: "xai-grok-4-7", vendor: "xAI", name: "Grok 4.7", date: "2026-09-21",
+      title: "Grok 4.7",
+      note: "编码与知识工作旗舰，适合工程与研究场景。",
+      url: "" },
+    { id: "meta-llama-4", vendor: "Meta", name: "Llama 4", date: "2026-04-05",
+      title: "Introducing Llama 4",
+      note: "开源多模态旗舰，社区与企业部署主力。",
+      url: "" },
+    { id: "meta-muse-spark", vendor: "Meta", name: "Muse Spark", date: "2026-04-08",
+      title: "Muse Spark",
+      note: "Muse 线起步，面向 Agent 与创意工作流。",
+      url: "" },
+    { id: "meta-muse-spark-1-1", vendor: "Meta", name: "Muse Spark 1.1", date: "2026-07-09",
+      title: "Muse Spark 1.1",
+      note: "Muse 迭代，工具调用与稳定性改进。",
+      url: "" },
+    { id: "meta-muse-spark-1-2", vendor: "Meta", name: "Muse Spark 1.2", date: "2026-08-05",
+      title: "Muse Spark 1.2",
+      note: "长上下文与并行工具调用能力提升。",
+      url: "" },
+    { id: "meta-muse-glimmer", vendor: "Meta", name: "Muse Glimmer", date: "2026-08-10",
+      title: "Muse Glimmer",
+      note: "端侧开源 Agent 模型，适合本地与边缘部署。",
+      url: "" },
+    { id: "meta-muse-spark-1-3", vendor: "Meta", name: "Muse Spark 1.3", date: "2026-09-02",
+      title: "Muse Spark 1.3",
+      note: "Muse 迭代，质量与吞吐进一步优化。",
+      url: "" },
+    { id: "meta-muse-wonder", vendor: "Meta", name: "Muse Wonder", date: "2026-10-12",
+      title: "Introducing Muse Wonder and Muse Wonder Full",
+      note: "Meta 首个 frontier 模型，Meta Model API（muse-wonder-1.0）+ Muse Code；面向个人与专业 Agent。",
+      url: "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/" },
+    { id: "meta-muse-wonder-full", vendor: "Meta", name: "Muse Wonder Full", date: "2026-10-12",
+      title: "Muse Wonder Full",
+      note: "更强档，仅 Muse Code 订阅可用（非 API）；Artificial Analysis Index 约 56。",
+      url: "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/" },
+    { id: "deepseek-v4-preview", vendor: "DeepSeek", name: "V4-Pro / V4-Flash Preview", date: "2026-04-24",
+      title: "DeepSeek V4-Pro / V4-Flash Preview",
+      note: "1M 上下文双档预览开源，Pro 与 Flash 同发。",
+      url: "" },
+    { id: "deepseek-v4-flash-0731", vendor: "DeepSeek", name: "V4-Flash 0731", date: "2026-07-31",
+      title: "DeepSeek V4-Flash 0731",
+      note: "Flash 正式版，高性价比长上下文主力。",
+      url: "" },
+    { id: "deepseek-v4-pro-0813", vendor: "DeepSeek", name: "V4-Pro 0813 GA", date: "2026-08-13",
+      title: "DeepSeek V4-Pro 0813 GA",
+      note: "Pro 正式版，Agent 能力显著强化。",
+      url: "" },
+    { id: "deepseek-v4-flash-vision", vendor: "DeepSeek", name: "V4-Flash-Vision-Exp", date: "2026-08-21",
+      title: "DeepSeek V4-Flash-Vision-Exp",
+      note: "视觉实验版，探索多模态 Flash 路线。",
+      url: "" },
+    { id: "deepseek-v4-1-flash", vendor: "DeepSeek", name: "V4.1-Flash", date: "2026-09-10",
+      title: "DeepSeek V4.1-Flash",
+      note: "原生多模态，取代旧 Flash，成为新日常档。",
+      url: "" },
+    { id: "kimi-k2-6", vendor: "Kimi", name: "Kimi K2.6", date: "2026-04-21",
+      title: "Kimi K2.6",
+      note: "开源 Agent / 长程 coding 模型。",
+      url: "" },
+    { id: "kimi-k3", vendor: "Kimi", name: "Kimi K3", date: "2026-07-17",
+      title: "Kimi K3",
+      note: "2.8T 旗舰，百万上下文，长程任务表现突出。",
+      url: "" },
+    { id: "kimi-k3-weights", vendor: "Kimi", name: "Kimi K3 权重开源", date: "2026-07-27",
+      title: "Kimi K3 权重开源",
+      note: "完整权重按计划放出，社区可本地部署。",
+      url: "" },
+    { id: "zhipu-glm-5-1", vendor: "Zhipu", name: "GLM-5.1", date: "2026-04-08",
+      title: "GLM-5.1",
+      note: "对齐 Opus 4.6 档编码 / 长程能力。",
+      url: "" },
+    { id: "zhipu-glm-5-2", vendor: "Zhipu", name: "GLM-5.2", date: "2026-06-13",
+      title: "GLM-5.2",
+      note: "1M 上下文长程旗舰，适合复杂工程任务。",
+      url: "" },
+    { id: "zhipu-glm-5-3", vendor: "Zhipu", name: "GLM-5.3", date: "2026-08-14",
+      title: "GLM-5.3",
+      note: "软件工程 / Agent 旗舰，工具链深度整合。",
+      url: "" },
+    { id: "zhipu-glm-5-3-flash", vendor: "Zhipu", name: "GLM-5.3-Flash", date: "2026-08-26",
+      title: "GLM-5.3-Flash",
+      note: "首个原生多模态 Flash，开源发布。",
+      url: "" }
+  ];
+
+  var LS_KEY = "ai-radar-read-ids-v1";
+  var UNREAD_DAYS = 14;
+
+  var state = {
+    q: "",
+    vendor: "all",   /* "all" or vendor key */
+    range: "all",    /* "7" | "30" | "all" | "custom" */
+    dateFrom: "",
+    dateTo: "",
+    expanded: null,
+    readIds: loadReadIds()
+  };
+
+  function todayISO() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+
+  function daysAgoISO(n) {
+    var d = new Date();
+    d.setDate(d.getDate() - n);
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+
+  function loadReadIds() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return new Set(arr);
+      }
+    } catch (e) {}
+    /* First load: mark items older than 14 days as read */
+    var cutoff = daysAgoISO(UNREAD_DAYS);
+    var read = [];
+    for (var i = 0; i < RELEASES.length; i++) {
+      if (RELEASES[i].date < cutoff) read.push(RELEASES[i].id);
+    }
+    try { localStorage.setItem(LS_KEY, JSON.stringify(read)); } catch (e2) {}
+    return new Set(read);
+  }
+
+  function saveReadIds() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(Array.from(state.readIds)));
+    } catch (e) {}
+  }
+
+  function isUnread(r) {
+    return !state.readIds.has(r.id);
+  }
+
+  function formatDate(iso) {
+    return iso.replace(/-/g, ".");
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove("show"); }, 2800);
+  }
+
+  function filtered() {
+    var q = state.q.trim().toLowerCase();
+    var from = state.dateFrom;
+    var to = state.dateTo;
+    var list = RELEASES.filter(function (r) {
+      if (state.vendor !== "all" && r.vendor !== state.vendor) return false;
+      if (from && r.date < from) return false;
+      if (to && r.date > to) return false;
+      if (q) {
+        var hay = (r.title + " " + r.name + " " + (r.note || "") + " " +
+          VENDORS[r.vendor].label + " " + VENDORS[r.vendor].pill).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+    list.sort(function (a, b) {
+      if (a.date !== b.date) return b.date.localeCompare(a.date);
+      return a.name.localeCompare(b.name);
+    });
+    return list;
+  }
+
+  function unreadCount(list) {
+    var n = 0;
+    for (var i = 0; i < list.length; i++) if (isUnread(list[i])) n++;
+    return n;
+  }
+
+  function buildVendorPills() {
+    var wrap = document.getElementById("vendorPills");
+    var html = '<span class="filter-label">厂商</span>';
+    html += '<button type="button" class="pill' + (state.vendor === "all" ? " on" : "") +
+      '" data-vendor="all">全部厂商</button>';
+    for (var i = 0; i < PILL_ORDER.length; i++) {
+      var k = PILL_ORDER[i];
+      var v = VENDORS[k];
+      html += '<button type="button" class="pill' + (state.vendor === k ? " on" : "") +
+        '" data-vendor="' + k + '">' + esc(v.pill) + "</button>";
+    }
+    wrap.innerHTML = html;
+  }
+
+  function syncRangePills() {
+    var pills = document.querySelectorAll("#rangePills .pill");
+    for (var i = 0; i < pills.length; i++) {
+      var r = pills[i].getAttribute("data-range");
+      pills[i].classList.toggle("on", state.range === r);
+    }
+  }
+
+  function applyQuickRange(range) {
+    state.range = range;
+    if (range === "7") {
+      state.dateFrom = daysAgoISO(7);
+      state.dateTo = todayISO();
+    } else if (range === "30") {
+      state.dateFrom = daysAgoISO(30);
+      state.dateTo = todayISO();
+    } else {
+      state.dateFrom = "";
+      state.dateTo = "";
+    }
+    document.getElementById("dateFrom").value = state.dateFrom;
+    document.getElementById("dateTo").value = state.dateTo;
+    syncRangePills();
+    render();
+  }
+
+  function renderCard(r) {
+    var v = VENDORS[r.vendor];
+    var unread = isUnread(r);
+    var expanded = state.expanded === r.id;
+    var hasUrl = !!(r.url && r.url.length);
+    var html = '<article class="card' + (unread ? " unread" : "") +
+      (expanded ? " expanded" : "") + '" data-id="' + esc(r.id) + '">';
+    html += '<div class="card-top">';
+    html += '<div class="logo" style="background:' + v.color + '">' + esc(v.short) + "</div>";
+    html += '<div class="card-body">';
+    html += '<div class="card-title-row">';
+    html += '<div class="card-title">' + esc(r.title || r.name) + "</div>";
+    if (unread) html += '<span class="new-badge">NEW</span>';
+    html += "</div>";
+    html += '<div class="card-meta">';
+    html += '<span class="vendor-tag" style="color:' + v.color + '">' + esc(v.label) + "</span>";
+    html += "<span>·</span>";
+    html += "<span>" + esc(formatDate(r.date)) + "</span>";
+    html += "</div>";
+    html += '<div class="card-summary">' + esc(r.note || "") + "</div>";
+    html += '<div class="card-detail"><strong style="color:var(--text)">' +
+      esc(r.name) + "</strong><br />" + esc(r.note || "") +
+      (hasUrl ? '<br /><br /><a href="' + esc(r.url) + '" target="_blank" rel="noopener noreferrer">' +
+        esc(r.url) + "</a>" : "") + "</div>";
+    html += "</div></div>";
+    html += '<div class="card-footer">';
+    if (hasUrl) {
+      html += '<a class="card-link" href="' + esc(r.url) +
+        '" target="_blank" rel="noopener noreferrer">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+        "官方原文</a>";
+    } else {
+      html += '<span class="card-link disabled">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+        "官方原文</span>";
+    }
+    html += '<button type="button" class="card-link btn-detail" data-id="' + esc(r.id) + '">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+      (expanded ? "收起详情" : "查看详情") + "</button>";
+    html += "</div></article>";
+    return html;
+  }
+
+  function render() {
+    buildVendorPills();
+    syncRangePills();
+    var items = filtered();
+    document.getElementById("countBadge").textContent = items.length + " 条";
+    var uc = unreadCount(items);
+    document.getElementById("unreadLabel").textContent = uc + " 条未读";
+    var btnAll = document.getElementById("btnMarkAll");
+    btnAll.disabled = uc === 0;
+
+    var list = document.getElementById("list");
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">没有匹配的发布记录</div>';
+      return;
+    }
+    var html = "";
+    for (var i = 0; i < items.length; i++) html += renderCard(items[i]);
+    list.innerHTML = html;
+  }
+
+  /* Events — use onclick / addEventListener for file:// compatibility */
+  document.getElementById("q").oninput = function () {
+    state.q = this.value;
+    render();
+  };
+
+  document.getElementById("vendorPills").onclick = function (e) {
+    var b = e.target.closest("button[data-vendor]");
+    if (!b) return;
+    state.vendor = b.getAttribute("data-vendor");
+    render();
+  };
+
+  document.getElementById("rangePills").onclick = function (e) {
+    var b = e.target.closest("button[data-range]");
+    if (!b) return;
+    applyQuickRange(b.getAttribute("data-range"));
+  };
+
+  document.getElementById("dateFrom").onchange = function () {
+    state.dateFrom = this.value;
+    state.range = "custom";
+    syncRangePills();
+    render();
+  };
+  document.getElementById("dateTo").onchange = function () {
+    state.dateTo = this.value;
+    state.range = "custom";
+    syncRangePills();
+    render();
+  };
+
+  document.getElementById("btnMarkAll").onclick = function () {
+    var items = filtered();
+    for (var i = 0; i < items.length; i++) state.readIds.add(items[i].id);
+    saveReadIds();
+    toast("已全部标记为已读");
+    render();
+  };
+
+  document.getElementById("btnSubscribe").onclick = function () {
+    toast("已由幕僚长定时监测，有确认发布会第一时间通知");
+  };
+
+  document.getElementById("btnRefresh").onclick = function () {
+    /* Soft re-render — static page, no live scrape */
+    state.expanded = null;
+    render();
+    toast("数据已刷新（本地静态页；新发布靠幕僚长监测写入）");
+  };
+
+  document.getElementById("list").onclick = function (e) {
+    var detailBtn = e.target.closest(".btn-detail");
+    if (detailBtn) {
+      var id = detailBtn.getAttribute("data-id");
+      state.expanded = state.expanded === id ? null : id;
+      /* Mark as read when opening detail */
+      if (state.expanded) {
+        state.readIds.add(id);
+        saveReadIds();
+      }
+      render();
+      return;
+    }
+    /* Clicking card body (not links) also toggles / marks read */
+    var card = e.target.closest(".card");
+    if (!card) return;
+    if (e.target.closest("a")) return;
+    if (e.target.closest(".btn-detail")) return;
+    var cid = card.getAttribute("data-id");
+    if (isUnread({ id: cid })) {
+      state.readIds.add(cid);
+      saveReadIds();
+      render();
+    }
+  };
+
+  /* Init */
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+  render();
+})();
+</script>
+</body>
+</html>
